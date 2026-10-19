@@ -7,26 +7,26 @@ pipeline {
     }
 
     environment {
-        IMAGE_NAME = kavyadharshinil/java-kubernetes-app:latest'
+        DOCKER_IMAGE = 'kavyadharshinil/java-kubernetes-app:latest'
     }
 
     stages {
-        stage('Checkout') {
+        stage('Clone Repository') {
             steps {
                 git branch: 'main',
                     url: 'https://github.com/kavyadharshini696/kubernetes.git'
             }
         }
 
-        stage('Build and Test') {
+        stage('Build with Maven') {
             steps {
-                sh 'mvn clean test package'
+                sh 'mvn clean package'
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t $IMAGE_NAME .'
+                sh 'docker build -t $DOCKER_IMAGE .'
             }
         }
 
@@ -40,19 +40,30 @@ pipeline {
                     )
                 ]) {
                     sh '''
-                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                        docker push "$IMAGE_NAME"
+                        set +x
+                        echo "$DOCKER_PASS" | docker login \
+                            -u "$DOCKER_USER" --password-stdin
+                        docker push "$DOCKER_IMAGE"
                         docker logout
                     '''
                 }
             }
         }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                sh 'kubectl apply -f deployment.yaml'
+                sh 'kubectl rollout status deployment/java-kubernetes-app --timeout=120s'
+            }
+        }
     }
 
     post {
-        always {
-            junit testResults: 'target/surefire-reports/*.xml',
-                  allowEmptyResults: true
+        success {
+            echo 'CI/CD Pipeline executed successfully!'
+        }
+        failure {
+            echo 'Pipeline failed. Check the Console Output.'
         }
     }
 }
