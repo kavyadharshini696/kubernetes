@@ -15,5 +15,5 @@ spec:
     spec:
       containers:
         - name: java-kubernetes-app
-          image: YOUR_DOCKERHUB_USERNAME/java-kubernetes-app:latest
+          image: kavyadharshinil/java-kubernetes-app:latest
           imagePullPolicy: Always
